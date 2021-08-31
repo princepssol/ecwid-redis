@@ -32,13 +32,15 @@ public final class RedisClient implements AutoCloseable {
     }
 
     public void set(String key, String value) {
-        Jedis jedis = jedisPool.getResource();
-        jedis.set(key, value);
+        try(Jedis jedis = jedisPool.getResource()) {
+            jedis.set(key, value);
+        }
     }
 
     public String get(String key) {
-        Jedis jedis = jedisPool.getResource();
-        return jedis.get(key);
+        try(Jedis jedis = jedisPool.getResource()) {
+            return jedis.get(key);
+        }
     }
 
     @Override
