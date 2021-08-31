@@ -1,0 +1,1 @@
+docker exec -it ecwid-redis_redis_1 redis-cli
