@@ -1,52 +1,67 @@
 package com.ecwid.app.util.collection;
 
 import com.ecwid.app.redis.RedisClient;
-import com.ecwid.app.redis.config.RedisConfig;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-public class RedisMap<K, V> implements Map<K, V> {
-    private RedisClient redisClient = RedisClient.getInstance(RedisConfig.URL, RedisConfig.PORT);
+public class RedisMap implements Map<String, Integer> {
+    private static int mapCount;
+    private final RedisClient redisClient = RedisClient.getInstance();
+    private final String mapKey;
+
+    public RedisMap(String key, Integer value) {
+        mapKey = this.getClass().getSimpleName() + "::" + mapCount;
+        redisClient.createMap(mapKey, key, value);
+        mapCount++;
+    }
+
+    public RedisMap(Map<String, Integer> map) {
+        mapKey = this.getClass().getSimpleName() + "::" + mapCount;
+        redisClient.createMap(mapKey, map);
+        mapCount++;
+    }
 
     @Override
     public int size() {
-        return 0;
+        return redisClient.getMapSize(mapKey);
     }
 
     @Override
     public boolean isEmpty() {
-        return false;
+        return redisClient.exists(mapKey);
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return false;
+        return redisClient.containsKeyMap(mapKey, key);
     }
 
     @Override
     public boolean containsValue(Object value) {
-        return false;
+        if (value instanceof Integer) {
+            return redisClient.;
+        }
     }
 
     @Override
-    public V get(Object key) {
+    public Integer get(Object key) {
         return null;
     }
 
     @Override
-    public V put(K key, V value) {
+    public Integer put(String key, Integer value) {
         return null;
     }
 
     @Override
-    public V remove(Object key) {
+    public Integer remove(Object key) {
         return null;
     }
 
     @Override
-    public void putAll(Map<? extends K, ? extends V> m) {
+    public void putAll(Map<? extends String, ? extends Integer> m) {
 
     }
 
@@ -56,17 +71,17 @@ public class RedisMap<K, V> implements Map<K, V> {
     }
 
     @Override
-    public Set<K> keySet() {
+    public Set<String> keySet() {
         return null;
     }
 
     @Override
-    public Collection<V> values() {
+    public Collection<Integer> values() {
         return null;
     }
 
     @Override
-    public Set<Entry<K, V>> entrySet() {
+    public Set<Entry<String, Integer>> entrySet() {
         return null;
     }
 }

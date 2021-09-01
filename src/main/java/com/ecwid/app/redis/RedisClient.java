@@ -2,9 +2,12 @@ package com.ecwid.app.redis;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisSentinelPool;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+
+import static com.ecwid.app.redis.config.RedisConfig.*;
 
 public final class RedisClient implements AutoCloseable {
     private static volatile RedisClient instance;
@@ -20,27 +23,15 @@ public final class RedisClient implements AutoCloseable {
         }
     }
 
-    public static RedisClient getInstance(String ip, final int port) {
+    public static RedisClient getInstance() {
         if (instance == null) {
             synchronized (RedisClient.class) {
                 if (instance == null) {
-                    instance = new RedisClient(ip, port);
+                    instance = new RedisClient(URL, PORT);
                 }
             }
         }
         return instance;
-    }
-
-    public void set(String key, String value) {
-        try(Jedis jedis = jedisPool.getResource()) {
-            jedis.set(key, value);
-        }
-    }
-
-    public String get(String key) {
-        try(Jedis jedis = jedisPool.getResource()) {
-            return jedis.get(key);
-        }
     }
 
     @Override
