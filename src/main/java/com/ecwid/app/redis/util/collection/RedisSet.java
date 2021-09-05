@@ -1,4 +1,4 @@
-package com.ecwid.app.util.collection;
+package com.ecwid.app.redis.util.collection;
 
 import com.ecwid.app.redis.RedisClient;
 
