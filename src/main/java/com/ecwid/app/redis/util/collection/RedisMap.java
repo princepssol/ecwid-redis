@@ -11,13 +11,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RedisMap implements Map<String, Integer> {
-    private static final String NOT_KEY = "Key is not a string";
-    private static final String NOT_VALUE = "Value is not an integer";
-    private static final String VALUE_NULL = "value=null";
-    private static final String KEY_NULL = "key=null";
-    private static final String MAP_NULL = "Accepted Map is null";
-    private static final String EMPTY_MAP = "Can't accept empty Map";
-    private static final String ELEMENT_MAP = "Map with ";
     private static final AtomicInteger mapCount = new AtomicInteger(0);
     private final RedisClient redisClient = RedisClient.getInstance();
     private final String mapKey;
@@ -34,7 +27,7 @@ public class RedisMap implements Map<String, Integer> {
 
     public RedisMap(Map<? extends String, ? extends Integer> map) {
         if (map.isEmpty()) {
-            throw new UnsupportedOperationException(EMPTY_MAP);
+            throw new UnsupportedOperationException();
         }
         mapKey = this.getClass().getSimpleName() + "::" + mapCount.get();
         if (isEmpty()) {
@@ -52,53 +45,53 @@ public class RedisMap implements Map<String, Integer> {
 
     @Override
     public boolean isEmpty() {
-        return !redisClient.existsMap(mapKey);
+        return redisClient.nonExists(mapKey);
     }
 
     @Override
     public boolean containsKey(Object key) {
-        checkNull(key, KEY_NULL);
+        checkNull(key);
         if (key instanceof String) {
             return redisClient.containsKeyMap(mapKey, (String) key);
         } else {
-            throw new ClassCastException(NOT_KEY);
+            throw new ClassCastException();
         }
     }
 
     @Override
     public boolean containsValue(Object value) {
-        checkNull(value, VALUE_NULL);
+        checkNull(value);
         if (value instanceof Integer) {
             return redisClient.containsValueMap(mapKey, (Integer) value);
         } else {
-            throw new ClassCastException(NOT_VALUE);
+            throw new ClassCastException();
         }
     }
 
     @Override
     public Integer get(Object key) {
-        checkNull(key, KEY_NULL);
+        checkNull(key);
         if (key instanceof String) {
             return redisClient.getFromMap(mapKey, (String) key);
         } else {
-            throw new ClassCastException(NOT_VALUE);
+            throw new ClassCastException();
         }
     }
 
     @Override
     public Integer put(String key, Integer value) {
-        checkNull(key, KEY_NULL);
-        checkNull(value, VALUE_NULL);
+        checkNull(key);
+        checkNull(value);
         return redisClient.putToMap(mapKey, key, value);
     }
 
     @Override
     public Integer remove(Object key) {
-        checkNull(key, KEY_NULL);
+        checkNull(key);
         if (key instanceof String) {
             return redisClient.removeFromMap(mapKey, (String) key);
         } else {
-            throw new ClassCastException(NOT_KEY);
+            throw new ClassCastException();
         }
     }
 
@@ -110,7 +103,7 @@ public class RedisMap implements Map<String, Integer> {
 
     @Override
     public void clear() {
-        redisClient.removeMap(mapKey);
+        redisClient.remove(mapKey);
     }
 
     @Override
@@ -129,18 +122,18 @@ public class RedisMap implements Map<String, Integer> {
         return map.entrySet();
     }
 
-    private void checkNull(Object object, String message) {
+    private void checkNull(Object object) {
         if (isNull(object)) {
-            throw new NullPointerException(message);
+            throw new NullPointerException();
         }
     }
 
     private void checkNull(Map<? extends String, ? extends Integer> map) {
-        checkNull(map, MAP_NULL);
+        checkNull((Object) map);
         map.forEach(
                 (key, value) -> {
-                    checkNull(key, ELEMENT_MAP + KEY_NULL);
-                    checkNull(value, ELEMENT_MAP + VALUE_NULL);
+                    checkNull(key);
+                    checkNull(value);
                 }
         );
     }

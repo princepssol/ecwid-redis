@@ -10,15 +10,18 @@ public final class RedisConfig {
     private static final Properties properties;
     private static final String KEY_URL = "url";
     private static final String KEY_PORT = "port";
+    private static final String KEY_MASTER = "master.name";
     private static final String PROPERTIES_PATH = "redis-connection.properties";
 
     public static final String URL;
     public static final int PORT;
+    public static final String MASTER_NAME;
 
     static {
         properties = initProperties();
         URL = getUrl();
         PORT = getPort();
+        MASTER_NAME = getMasterName();
     }
 
     private static Properties initProperties() {
@@ -39,5 +42,9 @@ public final class RedisConfig {
 
     private static int getPort() {
         return Integer.parseInt(properties.getProperty(KEY_PORT));
+    }
+
+    private static String getMasterName() {
+        return properties.getProperty(KEY_MASTER);
     }
 }
