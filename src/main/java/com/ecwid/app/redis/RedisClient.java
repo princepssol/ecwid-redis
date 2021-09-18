@@ -42,7 +42,7 @@ public final class RedisClient implements AutoCloseable {
 
     public boolean nonExists(String name) {
         try (Jedis jedis = jedisPool.getResource()) {
-            return jedis.exists(name);
+            return !jedis.exists(name);
         }
     }
 
@@ -73,7 +73,7 @@ public final class RedisClient implements AutoCloseable {
         try (Jedis jedis = jedisPool.getResource()) {
             String oldString = jedis.hget(name, key);
             Integer oldInteger = null;
-            if (!"nil".equals(oldString)) {
+            if (Objects.nonNull(oldString)) {
                 oldInteger = convertToInt(oldString);
             }
             jedis.hset(name, key, value.toString());

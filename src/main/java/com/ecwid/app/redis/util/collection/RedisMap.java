@@ -5,8 +5,7 @@ import com.ecwid.app.redis.RedisClient;
 import java.util.Collection;
 import java.util.Map;
 
-import static java.util.Objects.isNull;
-
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,7 +49,7 @@ public class RedisMap implements Map<String, Integer> {
 
     @Override
     public boolean containsKey(Object key) {
-        checkNull(key);
+        Objects.requireNonNull(key);
         if (key instanceof String) {
             return redisClient.containsKeyMap(mapKey, (String) key);
         } else {
@@ -60,7 +59,7 @@ public class RedisMap implements Map<String, Integer> {
 
     @Override
     public boolean containsValue(Object value) {
-        checkNull(value);
+        Objects.requireNonNull(value);
         if (value instanceof Integer) {
             return redisClient.containsValueMap(mapKey, (Integer) value);
         } else {
@@ -70,7 +69,7 @@ public class RedisMap implements Map<String, Integer> {
 
     @Override
     public Integer get(Object key) {
-        checkNull(key);
+        Objects.requireNonNull(key);
         if (key instanceof String) {
             return redisClient.getFromMap(mapKey, (String) key);
         } else {
@@ -80,14 +79,14 @@ public class RedisMap implements Map<String, Integer> {
 
     @Override
     public Integer put(String key, Integer value) {
-        checkNull(key);
-        checkNull(value);
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(value);
         return redisClient.putToMap(mapKey, key, value);
     }
 
     @Override
     public Integer remove(Object key) {
-        checkNull(key);
+        Objects.requireNonNull(key);
         if (key instanceof String) {
             return redisClient.removeFromMap(mapKey, (String) key);
         } else {
@@ -122,18 +121,12 @@ public class RedisMap implements Map<String, Integer> {
         return map.entrySet();
     }
 
-    private void checkNull(Object object) {
-        if (isNull(object)) {
-            throw new NullPointerException();
-        }
-    }
-
     private void checkNull(Map<? extends String, ? extends Integer> map) {
-        checkNull((Object) map);
+        Objects.requireNonNull(map);
         map.forEach(
                 (key, value) -> {
-                    checkNull(key);
-                    checkNull(value);
+                    Objects.requireNonNull(key);
+                    Objects.requireNonNull(value);
                 }
         );
     }
