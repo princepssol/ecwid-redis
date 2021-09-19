@@ -40,12 +40,15 @@ public final class RedisClient implements AutoCloseable {
         }
     }
 
-    public boolean nonExists(String name) {
+    public boolean exists(String name) {
         try (Jedis jedis = jedisPool.getResource()) {
-            return !jedis.exists(name);
+            return jedis.exists(name);
         }
     }
 
+    public boolean nonExists(String name) {
+        return !exists(name);
+    }
 
     public boolean containsKeyMap(String name, String key) {
         try (Jedis jedis = jedisPool.getResource()) {
@@ -63,7 +66,7 @@ public final class RedisClient implements AutoCloseable {
         try (Jedis jedis = jedisPool.getResource()) {
             String value = jedis.hget(name, key);
             if (Objects.nonNull(value)) {
-                return convertToInt(value);
+                return Integer.parseInt(value);
             }
             return null;
         }
@@ -74,7 +77,7 @@ public final class RedisClient implements AutoCloseable {
             String oldString = jedis.hget(name, key);
             Integer oldInteger = null;
             if (Objects.nonNull(oldString)) {
-                oldInteger = convertToInt(oldString);
+                oldInteger = Integer.parseInt(oldString);
             }
             jedis.hset(name, key, value.toString());
             return oldInteger;
@@ -101,7 +104,7 @@ public final class RedisClient implements AutoCloseable {
         try (Jedis jedis = jedisPool.getResource()) {
             String value = jedis.hget(name, key);
             if (jedis.hdel(name, key) == 1L && Objects.nonNull(value)) {
-                return convertToInt(value);
+                return Integer.parseInt(value);
             }
             return null;
         }
@@ -117,7 +120,7 @@ public final class RedisClient implements AutoCloseable {
         try (Jedis jedis = jedisPool.getResource()) {
             return jedis.hvals(name)
                     .stream()
-                    .map(this::convertToInt)
+                    .map(Integer::parseInt)
                     .collect(Collectors.toList());
         }
     }
@@ -126,14 +129,10 @@ public final class RedisClient implements AutoCloseable {
         Map<String, Integer> map = new HashMap<>();
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.hgetAll(name).forEach(
-                    (key, value) -> map.put(key, convertToInt(value))
+                    (key, value) -> map.put(key, Integer.parseInt(value))
             );
             return map;
         }
-    }
-
-    private Integer convertToInt(String string) {
-        return Integer.parseInt(string);
     }
 
     public int getSizeList(String name) {
@@ -159,14 +158,14 @@ public final class RedisClient implements AutoCloseable {
     public List<Integer> getList(String name) {
         try (Jedis jedis = jedisPool.getResource()) {
             return jedis.lrange(name, 0, -1).stream()
-                    .map(this::convertToInt)
+                    .map(Integer::parseInt)
                     .collect(Collectors.toList());
         }
     }
 
     public boolean removeFromList(String name, Integer o) {
         try (Jedis jedis = jedisPool.getResource()) {
-            return jedis.lrem(name, -1, o.toString()) == 0L;
+            return jedis.lrem(name, -1, o.toString()) > 0L;
         }
     }
 
@@ -206,17 +205,17 @@ public final class RedisClient implements AutoCloseable {
     public boolean removeAllFromList(String name, Collection<? extends Integer> collection) {
         try (Jedis jedis = jedisPool.getResource()) {
             return collection.stream()
-                    .map(integer -> jedis.lrem(name, -1, integer.toString()))
-                    .anyMatch(result -> result == 0L);
+                    .mapToLong(integer -> jedis.lrem(name, -1, integer.toString()))
+                    .sum() > 0L;
         }
     }
 
     public boolean retainAllFromList(String name, Collection<? extends Integer> collection) {
         try (Jedis jedis = jedisPool.getResource()) {
-            Transaction transaction = jedis.multi();
-            List<Integer> newList = transaction.lrange(name, 0, -1).get().stream()
-                    .map(this::convertToInt)
+            List<Integer> newList = jedis.lrange(name, 0, -1).stream()
+                    .map(Integer::parseInt)
                     .collect(Collectors.toList());
+            Transaction transaction = jedis.multi();
             if (newList.retainAll(collection)) {
                 transaction.del(name);
                 String[] strings = newList.stream()
@@ -234,19 +233,18 @@ public final class RedisClient implements AutoCloseable {
 
     public Integer getFromListByIndex(String name, int index) {
         try (Jedis jedis = jedisPool.getResource()) {
-            return convertToInt(jedis.lindex(name, index));
+            return Integer.parseInt(jedis.lindex(name, index));
         }
     }
 
     public Integer setElementInListByIndex(String name, int index, Integer element) {
         try (Jedis jedis = jedisPool.getResource()) {
-            Transaction transaction = jedis.multi();
-            if ("nil".equals(transaction.lindex(name, index).get())) {
-                transaction.discard();
+            if (Objects.isNull(jedis.lindex(name, index))) {
                 return null;
             }
-            List<String> oldList = transaction.lrange(name, 0, -1).get();
-            Integer old = convertToInt(oldList.set(index, element.toString()));
+            List<String> oldList = jedis.lrange(name, 0, -1);
+            Integer old = Integer.parseInt(oldList.set(index, element.toString()));
+            Transaction transaction = jedis.multi();
             transaction.del(name);
             transaction.rpush(name, oldList.toArray(String[]::new));
             transaction.exec();
@@ -256,9 +254,9 @@ public final class RedisClient implements AutoCloseable {
 
     public void addToIndexList(String name, int index, Integer element) {
         try (Jedis jedis = jedisPool.getResource()) {
+            List<String> oldList = jedis.lrange(name, 0, -1);
             Transaction transaction = jedis.multi();
-            List<String> oldList = transaction.lrange(name, 0, -1).get();
-            oldList.set(index, element.toString());
+            oldList.add(index, element.toString());
             transaction.del(name);
             transaction.rpush(name, oldList.toArray(String[]::new));
             transaction.exec();
@@ -268,25 +266,33 @@ public final class RedisClient implements AutoCloseable {
 
     public Integer removeFromListByIndex(String name, int index) {
         try (Jedis jedis = jedisPool.getResource()) {
+            List<String> oldList = jedis.lrange(name, 0, -1);
             Transaction transaction = jedis.multi();
-            List<String> oldList = transaction.lrange(name, 0, -1).get();
             String result = oldList.remove(index);
             transaction.del(name);
-            transaction.rpush(name, oldList.toArray(String[]::new));
-            transaction.exec();
-            return convertToInt(result);
+            if (oldList.size() != 0) {
+                transaction.rpush(name, oldList.toArray(String[]::new));
+                transaction.exec();
+                return Integer.parseInt(result);
+            } else {
+                return null;
+            }
         }
     }
 
     public int getIndexFromList(String name, Integer element) {
         try (Jedis jedis = jedisPool.getResource()) {
-            return jedis.lpos(name, element.toString()).intValue();
+            return Optional.ofNullable(jedis.lpos(name, element.toString()))
+                    .map(Long::intValue)
+                    .orElse(-1);
         }
     }
 
     public int getLastIndexFromList(String name, Integer element) {
         try (Jedis jedis = jedisPool.getResource()) {
-            return jedis.lpos(name, element.toString(), LPosParams.lPosParams().rank(-1)).intValue();
+            return Optional.ofNullable(jedis.lpos(name, element.toString(), LPosParams.lPosParams().rank(-1)))
+                    .map(Long::intValue)
+                    .orElse(-1);
         }
     }
 }

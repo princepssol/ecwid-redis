@@ -15,8 +15,7 @@ class RedisMapTest {
 
     @BeforeEach
     void setUp() {
-        expected = new HashMap<>();
-        expected.put("0", 0);
+        expected = new HashMap<>(Map.of("0", 0));
         actual = new RedisMap(expected);
     }
 
@@ -57,9 +56,10 @@ class RedisMapTest {
     @Test
     void put() {
         assertFalse(actual.containsKey("1"));
-        actual.put("1", 1);
+        assertNull(actual.put("1", 1));
         assertTrue(actual.containsKey("1"));
         assertTrue(actual.containsValue(1));
+        assertEquals(1, actual.put("1", 2));
     }
 
     @Test
@@ -68,7 +68,7 @@ class RedisMapTest {
         actual.put("1", 1);
         assertTrue(actual.containsKey("1"));
         assertTrue(actual.containsValue(1));
-        actual.remove("1");
+        assertEquals(1, actual.remove("1"));
         assertFalse(actual.containsKey("1"));
         assertFalse(actual.containsValue(1));
     }

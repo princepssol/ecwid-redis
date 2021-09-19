@@ -5,7 +5,7 @@ import com.ecwid.app.redis.RedisClient;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.util.Objects.isNull;
+import static java.util.Objects.*;
 
 public class RedisList implements List<Integer> {
     private static AtomicInteger listCount = new AtomicInteger(0);
@@ -47,7 +47,7 @@ public class RedisList implements List<Integer> {
 
     @Override
     public boolean contains(Object o) {
-        Objects.requireNonNull(o);
+        requireNonNull(o);
         if (o instanceof Integer) {
             return redisClient.containsElementList(listKey, (Integer) o);
         } else {
@@ -78,7 +78,7 @@ public class RedisList implements List<Integer> {
 
     @Override
     public boolean remove(Object o) {
-        Objects.requireNonNull(o);
+        requireNonNull(o);
         if (o instanceof Integer) {
             return redisClient.removeFromList(listKey, (Integer) o);
         } else {
@@ -97,28 +97,29 @@ public class RedisList implements List<Integer> {
 
     @Override
     public boolean addAll(Collection<? extends Integer> c) {
-        Objects.requireNonNull(c);
+        requireNonNull(c);
         c.forEach(Objects::requireNonNull);
         return redisClient.addAllToTailList(listKey, c);
     }
 
     @Override
     public boolean addAll(int index, Collection<? extends Integer> c) {
-        Objects.requireNonNull(c);
+        checkIndex(index, size());
+        requireNonNull(c);
         c.forEach(Objects::requireNonNull);
         return redisClient.addAllToIndexList(listKey, index, c);
     }
 
     @Override
     public boolean removeAll(Collection<?> collection) {
-        Objects.requireNonNull(collection);
+        requireNonNull(collection);
         collection.forEach(Objects::requireNonNull);
         return redisClient.removeAllFromList(listKey, (Collection<? extends Integer>) collection);
     }
 
     @Override
     public boolean retainAll(Collection<?> collection) {
-        Objects.requireNonNull(collection);
+        requireNonNull(collection);
         collection.forEach(Objects::requireNonNull);
         return redisClient.retainAllFromList(listKey, (Collection<? extends Integer>) collection);
     }
@@ -130,29 +131,33 @@ public class RedisList implements List<Integer> {
 
     @Override
     public Integer get(int index) {
+        checkIndex(index, size());
         return redisClient.getFromListByIndex(listKey, index);
     }
 
     @Override
     public Integer set(int index, Integer element) {
-        Objects.requireNonNull(element);
+        requireNonNull(element);
+        checkIndex(index, size());
         return redisClient.setElementInListByIndex(listKey, index, element);
     }
 
     @Override
     public void add(int index, Integer element) {
-        Objects.requireNonNull(element);
+        requireNonNull(element);
+        checkIndex(index, size());
         redisClient.addToIndexList(listKey, index, element);
     }
 
     @Override
     public Integer remove(int index) {
+        checkIndex(index, size());
         return redisClient.removeFromListByIndex(listKey, index);
     }
 
     @Override
     public int indexOf(Object o) {
-        Objects.requireNonNull(o);
+        requireNonNull(o);
         if (o instanceof Integer) {
             return redisClient.getIndexFromList(listKey, (Integer) o);
         } else {
@@ -162,7 +167,7 @@ public class RedisList implements List<Integer> {
 
     @Override
     public int lastIndexOf(Object o) {
-        Objects.requireNonNull(o);
+        requireNonNull(o);
         if (o instanceof Integer) {
             return redisClient.getLastIndexFromList(listKey, (Integer) o);
         } else {
@@ -177,65 +182,78 @@ public class RedisList implements List<Integer> {
 
     @Override
     public ListIterator<Integer> listIterator(int index) {
-        return null;
+        checkIndex(index, size());
+        return new ListItr(index);
     }
 
     @Override
     public List<Integer> subList(int fromIndex, int toIndex) {
-        return null;
-    }
-
-    private void checkNull(Object o) {
-        if (isNull(o)) {
-            throw new NullPointerException();
-        }
+        throw new UnsupportedOperationException();
     }
 
     private class ListItr implements ListIterator<Integer> {
+        private final RedisList thisList;
+        private final List<Integer> listArray;
+        private final ListIterator<Integer> listIterator;
+
+        private ListItr() {
+            thisList = RedisList.this;
+            listArray = redisClient.getList(listKey);
+            listIterator = listArray.listIterator();
+        }
+
+        private ListItr(int index) {
+            thisList = RedisList.this;
+            listArray = redisClient.getList(listKey);
+            listIterator = listArray.listIterator(index);
+        }
 
         @Override
         public boolean hasNext() {
-            return false;
+            return listIterator.hasNext();
         }
 
         @Override
         public Integer next() {
-            return null;
+            return listIterator.next();
         }
 
         @Override
         public boolean hasPrevious() {
-            return false;
+            return listIterator.hasPrevious();
         }
 
         @Override
         public Integer previous() {
-            return null;
+            return listIterator.previous();
         }
 
         @Override
         public int nextIndex() {
-            return 0;
+            return listIterator.nextIndex();
         }
 
         @Override
         public int previousIndex() {
-            return 0;
+            return listIterator.previousIndex();
         }
 
         @Override
         public void remove() {
-
+            listIterator.remove();
+            thisList.remove(nextIndex());
         }
 
         @Override
         public void set(Integer integer) {
-
+            listIterator.set(integer);
+            thisList.set(nextIndex(), integer);
         }
 
         @Override
         public void add(Integer integer) {
-
+            listIterator.add(integer);
+            thisList.add(nextIndex(), integer);
         }
     }
 }
