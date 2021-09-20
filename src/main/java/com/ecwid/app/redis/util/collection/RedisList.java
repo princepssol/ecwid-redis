@@ -247,13 +247,13 @@ public class RedisList implements List<Integer> {
         @Override
         public void set(Integer integer) {
             listIterator.set(integer);
-            thisList.set(nextIndex(), integer);
+            thisList.set(nextIndex() - 1, integer);
         }
 
         @Override
         public void add(Integer integer) {
             listIterator.add(integer);
-            thisList.add(nextIndex(), integer);
+            thisList.add(nextIndex() - 1, integer);
         }
     }
 }

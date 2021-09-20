@@ -275,6 +275,7 @@ public final class RedisClient implements AutoCloseable {
                 transaction.exec();
                 return Integer.parseInt(result);
             } else {
+                transaction.exec();
                 return null;
             }
         }
